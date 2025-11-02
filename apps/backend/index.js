@@ -1,15 +1,22 @@
-const express = require('express');
-require('dotenv').config()
+const express = require("express");
+const corsMiddleware = require("./config/core.js");
+const { authRouter } = require("./routes/authRoute.js");
+require("dotenv").config();
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.SERVER_PORT;
 
-app.get('/', (req, res) => {
-  res.send('Backend is running 🚀');
+app.use(corsMiddleware);
+app.use(express.json());
+
+app.use("/api/auth", authRouter)
+
+app.get("/", (req, res) => {
+  res.status(200).send("<h1>Backend Running Successfully 🚀</h1>");
 });
 
 app.listen(PORT, () => {
-  console.log(`✅Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`✅ Local Backend URL: ${process.env.BACKEND_LOCAL_URL}`);
+  console.log(`✅ Deployed Backend URL: ${process.env.BACKEND_SERVER_URL}`);
 });
