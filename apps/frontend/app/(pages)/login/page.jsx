@@ -1,66 +1,160 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { ArrowLeft } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: "", password: "" });
 
-  const handleChange = (e) => {
+  const [formData, setFormData] = useState({
+    input: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // Match first component’s BASE_URL logic
+  const BASE_URL =
+    process.env.NODE_ENV === "production"
+      ? process.env.NEXT_PUBLIC_BACKEND_SERVER_URL
+      : process.env.NEXT_PUBLIC_BACKEND_LOCAL_URL;
+
+  const getErrorMessage = (err, fallback = "Login failed ❌") => {
+    if (err.response?.data?.ERROR) return err.response.data.ERROR;
+    if (err.response?.data?.message) return err.response.data.message;
+    if (err.message?.includes("timeout")) return "⏳ Request timed out. Try again.";
+    if (err.request) return "⚠️ No response from server.";
+    return fallback;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login data:", formData);
+    setLoading(true);
+    setMessage("");
 
-    // TODO: Connect to /api/auth/login
-    // Simulating successful login
-    setTimeout(() => {
-      router.push("/dashboard"); // Redirect to dashboard after login
-    }, 1000);
+    const input = formData.input.trim();
+    const password = formData.password.trim();
+
+    if (!input || !password) {
+      setMessage("⚠️ Email/Username and Password are required");
+      toast.error("⚠️ Email/Username and Password are required");
+      setLoading(false);
+      return;
+    }
+
+    const payload = {
+      password,
+      ...(input.includes("@")
+        ? { email: input.toLowerCase() }
+        : { username: input.toLowerCase() }),
+    };
+
+    try {
+      const res = await axios.post(`${BASE_URL}/api/auth/login`, payload, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 8000,
+      });
+
+      setLoading(false);
+
+      if (res.data?.token) {
+        toast.success("✅ Login successful! Redirecting...");
+        setMessage("✅ Login successful! Redirecting...");
+        setTimeout(() => router.push("/dashboard"), 1200);
+      } else {
+        toast.error("Unexpected response format ❌");
+        setMessage("Unexpected response format ❌");
+      }
+    } catch (err) {
+      setLoading(false);
+      const errorMessage = getErrorMessage(err);
+      console.error("Login error:", err);
+      toast.error(`❌ ${errorMessage}`);
+      setMessage(`❌ ${errorMessage}`);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-80">
-        <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
-          Login
-        </h1>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 px-4 relative">
+      <button
+        onClick={() => router.push("/")}
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition"
+      >
+        <ArrowLeft size={20} />
+        <span className="font-medium">Back to Home</span>
+      </button>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          />
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-blue-100">
+        <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">
+          Welcome Back to <span className="text-blue-600">Messia</span>
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">
+              Email or Username
+            </label>
+            <input
+              type="text"
+              name="input"
+              required
+              value={formData.input}
+              onChange={handleChange}
+              placeholder="you@example.com or john_doe"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+          </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-60"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
+        {message && (
+          <p
+            className={`text-center mt-4 text-sm ${
+              message.includes("✅")
+                ? "text-green-600"
+                : "text-red-600 font-medium"
+            }`}
+          >
+            {message}
+          </p>
+        )}
+
+        <p className="text-center text-gray-600 text-sm mt-6">
           Don’t have an account?{" "}
-          <Link href="/register" className="text-blue-500 hover:underline">
+          <Link
+            href="/register"
+            className="text-blue-600 font-medium hover:underline"
+          >
             Register
           </Link>
         </p>
@@ -68,4 +162,3 @@ export default function Login() {
     </div>
   );
 }
-
