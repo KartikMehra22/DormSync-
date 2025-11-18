@@ -7,7 +7,7 @@ async function createUserController(req, res) {
     let { name, username, email, password } = req.body;
 
     try {
-        name = name.trim();
+        name = name.trim(); 
         username = username.trim().toLowerCase();
         email = email.trim().toLowerCase();
 

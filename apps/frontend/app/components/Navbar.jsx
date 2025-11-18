@@ -15,7 +15,7 @@ function Navbar() {
 
   const handleNavClick = (path) => {
     router.push(path);
-    setIsOpen(false);
+    setIsOpen(false); 
   };
 
   return (

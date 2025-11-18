@@ -15,7 +15,7 @@
 //   {
 //     id: 1,
 //     image: "/hero1.jpg",
-//     title: "Welcome to MESSIA",
+//     title: "Welcome to MESSIA", 
 //     subtitle:
 //       "Your magical destination for personalized and thoughtful gifts.",
 //   },

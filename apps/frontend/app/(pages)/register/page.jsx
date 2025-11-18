@@ -15,7 +15,7 @@ function Register() {
     password: "",
     confirm_password: "",
   });
-
+ 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 

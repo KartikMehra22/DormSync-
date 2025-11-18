@@ -9,7 +9,7 @@ const {
 } = require("../middlewares/authMiddleware")
 
 const {
-    createUserController,
+    createUserController, 
     loginUserController,
     logoutUserController,
     getMeController,

@@ -7,7 +7,7 @@ async function createUserMiddleware(req, res, next) {
     if (!name || !password || !confirm_password || !email || !username) {
         return res.status(400).json({ ERROR: "All fields are required" });
     }
-
+ 
     name = name.trim();
     email = email.trim().toLowerCase();
     username = username.trim().toLowerCase();
