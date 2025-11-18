@@ -3,25 +3,25 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
+import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { ArrowLeft } from "lucide-react";
 
-export default function Login() {
-  const router = useRouter();
-
+function Login() {
   const [formData, setFormData] = useState({
     input: "",
     password: "",
   });
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // Match first component’s BASE_URL logic
   const BASE_URL =
     process.env.NODE_ENV === "production"
       ? process.env.NEXT_PUBLIC_BACKEND_SERVER_URL
@@ -30,8 +30,8 @@ export default function Login() {
   const getErrorMessage = (err, fallback = "Login failed ❌") => {
     if (err.response?.data?.ERROR) return err.response.data.ERROR;
     if (err.response?.data?.message) return err.response.data.message;
-    if (err.message?.includes("timeout")) return "⏳ Request timed out. Try again.";
-    if (err.request) return "⚠️ No response from server.";
+    if (err.message?.includes("timeout")) return "Request timed out. Try again.";
+    if (err.request) return "No response from server. Check your network.";
     return fallback;
   };
 
@@ -66,14 +66,17 @@ export default function Login() {
       setLoading(false);
 
       if (res.data?.token) {
+        login(res.data.token);
         toast.success("✅ Login successful! Redirecting...");
         setMessage("✅ Login successful! Redirecting...");
-        setTimeout(() => router.push("/dashboard"), 1200);
-      } else {
+        setTimeout(() => router.push("/profile"), 1200);
+      } 
+      else {
         toast.error("Unexpected response format ❌");
         setMessage("Unexpected response format ❌");
       }
-    } catch (err) {
+    } 
+    catch (err) {
       setLoading(false);
       const errorMessage = getErrorMessage(err);
       console.error("Login error:", err);
@@ -83,18 +86,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 px-4 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-white to-pink-50 px-4 relative">
       <button
         onClick={() => router.push("/")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-pink-600 transition"
       >
         <ArrowLeft size={20} />
         <span className="font-medium">Back to Home</span>
       </button>
 
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-blue-100">
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-pink-100">
         <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">
-          Welcome Back to <span className="text-blue-600">Messia</span>
+          Welcome Back to <span className="text-pink-600">Messia</span>
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,7 +112,7 @@ export default function Login() {
               value={formData.input}
               onChange={handleChange}
               placeholder="you@example.com or john_doe"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
@@ -124,14 +127,14 @@ export default function Login() {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-60"
+            className="w-full bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -153,7 +156,7 @@ export default function Login() {
           Don’t have an account?{" "}
           <Link
             href="/register"
-            className="text-blue-600 font-medium hover:underline"
+            className="text-pink-600 font-medium hover:underline"
           >
             Register
           </Link>
@@ -162,3 +165,5 @@ export default function Login() {
     </div>
   );
 }
+
+export default Login;

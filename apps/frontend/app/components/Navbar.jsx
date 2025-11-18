@@ -1,130 +1,158 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Menu, X, User } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
-export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const pathname = usePathname();
+function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { isLoggedIn } = useAuth();
 
-  const navLinks = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/attendance", label: "Attendance" },
-    { href: "/issues", label: "Issues" },
-    { href: "/mess", label: "Mess" },
-    { href: "/announcements", label: "Announcements" },
-    { href: "/profile", label: "Profile" },
-  ];
+  const toggleMenu = () => setIsOpen((prev) => !prev);
 
-  const handleLogin = () => router.push("/login");
-  const handleSignup = () => router.push("/register");
+  const handleNavClick = (path) => {
+    router.push(path);
+    setIsOpen(false);
+  };
 
   return (
-    <nav className="bg-blue-600 text-white shadow-md px-6 py-3 sticky top-0 z-50">
-      <div className="flex justify-between items-center">
-        {/* Logo */}
-        <button
-          onClick={() => router.push("/")}
-          className="text-2xl font-bold tracking-wide flex items-center gap-1 focus:outline-none"
-        >
-          DormSync<span className="text-yellow-300">+</span>
-        </button>
-
-        {/* Desktop Links */}
-        <ul className="hidden md:flex space-x-6 text-sm font-medium">
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className={`hover:text-yellow-300 transition ${
-                  pathname === link.href ? "text-yellow-300" : ""
-                }`}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        {/* Auth Buttons */}
-        <div className="hidden md:flex space-x-3">
+    <nav className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md shadow-sm z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <button
-            onClick={handleLogin}
-            className="bg-yellow-400 text-blue-700 font-semibold px-4 py-2 rounded-lg hover:bg-yellow-300 transition"
+            onClick={() => handleNavClick("/")}
+            className="text-2xl font-semibold tracking-tight text-gray-800 focus:outline-none cursor-pointer"
           >
-            Login
+            Messia<span className="text-pink-600">.</span>
           </button>
+
+          <div className="hidden md:flex items-center space-x-8">
+            <Link
+              href="/"
+              className="text-gray-700 hover:text-pink-600 transition"
+            >
+              Home
+            </Link>
+            <Link
+              href="/gifts"
+              className="text-gray-700 hover:text-pink-600 transition"
+            >
+              Gifts
+            </Link>
+            <Link
+              href="/about"
+              className="text-gray-700 hover:text-pink-600 transition"
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="text-gray-700 hover:text-pink-600 transition"
+            >
+              Contact
+            </Link>
+
+            <div className="flex items-center space-x-3">
+              {isLoggedIn ? (
+                <button
+                  onClick={() => handleNavClick("/profile")}
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:border-pink-600 hover:text-pink-600 transition"
+                >
+                  <User size={18} />
+                  <span>Profile</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleNavClick("/login")}
+                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:border-pink-600 hover:text-pink-600 transition"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => handleNavClick("/register")}
+                    className="px-4 py-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 transition"
+                  >
+                    Register
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
           <button
-            onClick={handleSignup}
-            className="bg-white text-blue-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition"
+            onClick={toggleMenu}
+            className="md:hidden p-2.5 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition"
           >
-            Sign Up
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden flex flex-col space-y-1 focus:outline-none"
-          aria-label="Toggle menu"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <span
-            className={`w-6 h-0.5 bg-white transform transition duration-300 ${
-              menuOpen ? "rotate-45 translate-y-2" : ""
-            }`}
-          ></span>
-          <span
-            className={`w-6 h-0.5 bg-white transition duration-300 ${
-              menuOpen ? "opacity-0" : ""
-            }`}
-          ></span>
-          <span
-            className={`w-6 h-0.5 bg-white transform transition duration-300 ${
-              menuOpen ? "-rotate-45 -translate-y-2" : ""
-            }`}
-          ></span>
-        </button>
       </div>
 
-      {/* Mobile Dropdown */}
-      {menuOpen && (
-        <div className="md:hidden mt-3 space-y-2 animate-fadeIn">
-          {navLinks.map((link) => (
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm md:hidden">
+          <div className="bg-white shadow-md absolute top-16 left-0 w-full px-4 pt-2 pb-4 space-y-3">
             <Link
-              key={link.href}
-              href={link.href}
-              className={`block px-2 py-2 rounded hover:bg-blue-700 ${
-                pathname === link.href ? "bg-blue-700 text-yellow-300" : ""
-              }`}
-              onClick={() => setMenuOpen(false)}
+              href="/"
+              onClick={() => setIsOpen(false)}
+              className="block text-gray-700 hover:text-pink-600"
             >
-              {link.label}
+              Home
             </Link>
-          ))}
+            <Link
+              href="/gifts"
+              onClick={() => setIsOpen(false)}
+              className="block text-gray-700 hover:text-pink-600"
+            >
+              Gifts
+            </Link>
+            <Link
+              href="/about"
+              onClick={() => setIsOpen(false)}
+              className="block text-gray-700 hover:text-pink-600"
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              onClick={() => setIsOpen(false)}
+              className="block text-gray-700 hover:text-pink-600"
+            >
+              Contact
+            </Link>
 
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              handleLogin();
-            }}
-            className="w-full text-left block px-2 py-2 rounded bg-yellow-400 text-blue-700 font-semibold hover:bg-yellow-300"
-          >
-            Login
-          </button>
-
-          <button
-            onClick={() => {
-              setMenuOpen(false);
-              handleSignup();
-            }}
-            className="w-full text-left block px-2 py-2 rounded bg-white text-blue-700 font-semibold hover:bg-gray-100"
-          >
-            Register
-          </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => handleNavClick("/profile")}
+                className="block w-full text-center border border-gray-300 rounded-full py-2 text-gray-700 hover:border-pink-600 hover:text-pink-600 transition"
+              >
+                Profile
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleNavClick("/login")}
+                  className="block w-full text-center border border-gray-300 rounded-full py-2 text-gray-700 hover:border-pink-600 hover:text-pink-600 transition"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => handleNavClick("/register")}
+                  className="block w-full text-center bg-pink-600 text-white rounded-full py-2 hover:bg-pink-700 transition"
+                >
+                  Register
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>
   );
 }
+
+export default Navbar;

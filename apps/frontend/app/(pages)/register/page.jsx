@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-export default function SignUp() {
-  const router = useRouter();
-
+function Register() {
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -21,6 +19,8 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const router = useRouter();
+
   const BASE_URL =
     process.env.NODE_ENV === "production"
       ? process.env.NEXT_PUBLIC_BACKEND_SERVER_URL
@@ -29,14 +29,13 @@ export default function SignUp() {
   const getErrorMessage = (err, fallback = "Registration failed ❌") => {
     if (err.response?.data?.ERROR) return err.response.data.ERROR;
     if (err.response?.data?.message) return err.response.data.message;
-    if (err.message?.includes("timeout")) return "⏳ Request timed out.";
-    if (err.request) return "⚠️ No response from server.";
+    if (err.message?.includes("timeout")) return "Request timed out. Try again.";
+    if (err.request) return "No response from server. Check your network.";
     return fallback;
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,9 +43,9 @@ export default function SignUp() {
     setMessage("");
 
     if (formData.password !== formData.confirm_password) {
+      setLoading(false);
       toast.error("❌ Passwords do not match");
       setMessage("❌ Passwords do not match");
-      setLoading(false);
       return;
     }
 
@@ -67,8 +66,8 @@ export default function SignUp() {
       setLoading(false);
 
       if (res.status === 201 || res.data?.message?.includes("success")) {
-        toast.success("✅ Account created! Redirecting...");
-        setMessage("✅ Account created! Redirecting...");
+        toast.success("✅ Registration successful! Redirecting...");
+        setMessage("✅ Registration successful! Redirecting...");
 
         setFormData({
           name: "",
@@ -79,14 +78,16 @@ export default function SignUp() {
         });
 
         setTimeout(() => router.push("/login"), 1200);
-      } else {
+      } 
+      else {
         const msg = res.data?.ERROR || "Registration failed ❌";
         toast.error(`❌ ${msg}`);
         setMessage(`❌ ${msg}`);
       }
-    } catch (err) {
+    } 
+    catch (err) {
       const msg = getErrorMessage(err);
-      console.error("Signup error:", err);
+      console.error("Register error:", err);
       setLoading(false);
       toast.error(`❌ ${msg}`);
       setMessage(`❌ ${msg}`);
@@ -94,18 +95,18 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-50 px-4 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-white to-pink-50 px-4 relative">
       <button
         onClick={() => router.push("/")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-700 hover:text-pink-600 transition"
       >
         <ArrowLeft size={20} />
         <span className="font-medium">Back to Home</span>
       </button>
 
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-blue-100">
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-pink-100">
         <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">
-          Create your <span className="text-blue-600">Messia</span> account
+          Create your <span className="text-pink-600">Messia</span> account
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -120,7 +121,7 @@ export default function SignUp() {
               value={formData.name}
               onChange={handleChange}
               placeholder="John Doe"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
@@ -135,7 +136,7 @@ export default function SignUp() {
               value={formData.username}
               onChange={handleChange}
               placeholder="john_doe"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
@@ -150,7 +151,7 @@ export default function SignUp() {
               value={formData.email}
               onChange={handleChange}
               placeholder="you@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
@@ -165,7 +166,7 @@ export default function SignUp() {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
@@ -180,14 +181,14 @@ export default function SignUp() {
               value={formData.confirm_password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-60"
+            className="w-full bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-60"
           >
             {loading ? "Creating Account..." : "Sign Up"}
           </button>
@@ -196,9 +197,7 @@ export default function SignUp() {
         {message && (
           <p
             className={`text-center mt-4 text-sm ${
-              message.includes("✅")
-                ? "text-green-600"
-                : "text-red-600 font-medium"
+              message.includes("✅") ? "text-green-600" : "text-red-600"
             }`}
           >
             {message}
@@ -209,7 +208,7 @@ export default function SignUp() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="text-blue-600 font-medium hover:underline"
+            className="text-pink-600 font-medium hover:underline"
           >
             Login
           </Link>
@@ -218,3 +217,5 @@ export default function SignUp() {
     </div>
   );
 }
+
+export default Register;
