@@ -1,8 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import {
   User,
@@ -15,19 +13,16 @@ import {
   X,
   Edit,
 } from "lucide-react";
-import axios from "axios"; 
+import axios from "axios";
 import toast from "react-hot-toast";
+import { useAuth } from "@/app/context/AuthContext";
 
-function ProfilePage() {
+export default function Profile() {
   const { token, isLoggedIn, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    gender: "",
-  });
+  const [formData, setFormData] = useState({ name: "", username: "", gender: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -38,10 +33,10 @@ function ProfilePage() {
       : process.env.NEXT_PUBLIC_BACKEND_LOCAL_URL;
 
   const getErrorMessage = (err, fallback = "Something went wrong ❌") => {
-    if (err.response?.data?.ERROR) return err.response.data.ERROR;
-    if (err.response?.data?.message) return err.response.data.message;
-    if (err.message?.includes("timeout")) return "Request timed out. Try again.";
-    if (err.request) return "No response from server. Check your network.";
+    if (err?.response?.data?.ERROR) return err.response.data.ERROR;
+    if (err?.response?.data?.message) return err.response.data.message;
+    if (err?.message?.includes("timeout")) return "Request timed out. Try again.";
+    if (err?.request) return "No response from server. Check your network.";
     return fallback;
   };
 
@@ -50,11 +45,14 @@ function ProfilePage() {
       toast.error("You must be logged in to access your profile.");
       router.push("/login");
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, router]);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!token) return;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       try {
         const res = await axios.get(`${BASE_URL}/api/auth/me`, {
@@ -69,32 +67,28 @@ function ProfilePage() {
             username: res.data.user.username || "",
             gender: res.data.user.gender || "",
           });
-        } 
-        else {
+        } else {
           toast.error("Invalid response format ❌");
           setMessage("Invalid response format ❌");
         }
-      } 
-      catch (err) {
+      } catch (err) {
         const msg = getErrorMessage(err, "Error fetching profile");
         console.error("Profile fetch error:", err);
         setMessage(`❌ ${msg}`);
-        if (err.response?.status === 401) {
+        if (err?.response?.status === 401) {
           toast.error("Session expired. Please log in again.");
           logout();
           router.push("/login");
-        } 
-        else {
+        } else {
           toast.error(`❌ ${msg}`);
         }
-      } 
-      finally {
+      } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [token]);
+  }, [token, BASE_URL, logout, router]);
 
   const handleLogout = () => {
     logout();
@@ -102,8 +96,7 @@ function ProfilePage() {
     router.push("/");
   };
 
-  const handleChange = (e) =>
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -112,10 +105,7 @@ function ProfilePage() {
 
     try {
       const res = await axios.put(`${BASE_URL}/api/auth/update`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         timeout: 8000,
       });
 
@@ -124,20 +114,17 @@ function ProfilePage() {
         setEditing(false);
         toast.success("✅ Profile updated successfully!");
         setMessage("✅ Profile updated successfully!");
-      } 
-      else {
+      } else {
         const msg = res.data?.ERROR || "Failed to update profile ❌";
         toast.error(msg);
         setMessage(`❌ ${msg}`);
       }
-    } 
-    catch (err) {
+    } catch (err) {
       const msg = getErrorMessage(err, "Error updating profile");
       console.error("Update error:", err);
       toast.error(`❌ ${msg}`);
       setMessage(`❌ ${msg}`);
-    } 
-    finally {
+    } finally {
       setSaving(false);
     }
   };
@@ -146,9 +133,7 @@ function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-pink-100 text-gray-600">
         <div className="animate-pulse text-center">
-          <p className="text-lg font-medium text-pink-600">
-            Loading your profile...
-          </p>
+          <p className="text-lg font-medium text-pink-600">Loading your profile...</p>
         </div>
       </div>
     );
@@ -158,10 +143,7 @@ function ProfilePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-gray-700">
         <p className="text-lg">No profile data found ❌</p>
-        <button
-          onClick={() => router.push("/login")}
-          className="mt-4 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition"
-        >
+        <button onClick={() => router.push("/login")} className="mt-4 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition">
           Go to Login
         </button>
       </div>
@@ -171,18 +153,12 @@ function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-white to-pink-50 py-10 px-4 flex flex-col items-center">
       <div className="w-full max-w-4xl flex items-center justify-between mb-8">
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition"
-        >
+        <button onClick={() => router.push("/")} className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition">
           <ArrowLeft size={20} />
           <span className="font-medium">Back to Home</span>
         </button>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 border border-red-500 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition"
-        >
+        <button onClick={handleLogout} className="flex items-center gap-2 border border-red-500 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition">
           <LogOut size={18} />
           Logout
         </button>
@@ -196,24 +172,12 @@ function ProfilePage() {
         </div>
 
         <div className="pt-16 pb-10 px-8 text-center">
-          <h2 className="text-3xl font-semibold text-gray-800">
-            {user.name}
-          </h2>
+          <h2 className="text-3xl font-semibold text-gray-800">{user.name}</h2>
           <p className="text-gray-500 mt-1">@{user.username}</p>
 
-          <p className="mt-4 text-sm text-gray-500 italic">
-            “Spreading smiles, one gift at a time 🎁”
-          </p>
+          <p className="mt-4 text-sm text-gray-500 italic">“Organize, connect, live better — DormSync”</p>
 
-          {message && (
-            <p
-              className={`text-center mt-4 text-sm ${
-                message.includes("✅") ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {message}
-            </p>
-          )}
+          {message && <p className={`text-center mt-4 text-sm ${message.includes("✅") ? "text-green-600" : "text-red-600"}`}>{message}</p>}
 
           {!editing ? (
             <>
@@ -230,80 +194,40 @@ function ProfilePage() {
 
                 <div className="flex items-center gap-3 text-gray-700">
                   <Calendar size={18} className="text-pink-600" />
-                  <span>
-                    Joined{" "}
-                    {new Date(user.createdAt || Date.now()).toLocaleDateString(
-                      "en-IN",
-                      { year: "numeric", month: "long", day: "numeric" }
-                    )}
-                  </span>
+                  <span>Joined {new Date(user.createdAt || Date.now()).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</span>
                 </div>
 
                 <div className="flex items-center gap-3 text-gray-700">
                   <span className="font-medium text-gray-600">Role:</span>
-                  <span className="font-medium text-pink-600 uppercase">
-                    {user.role || "USER"}
-                  </span>
+                  <span className="font-medium text-pink-600 uppercase">{user.role || "USER"}</span>
                 </div>
               </div>
 
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="bg-pink-600 text-white px-6 py-2.5 rounded-lg hover:bg-pink-700 transition flex items-center gap-2"
-                >
+                <button onClick={() => setEditing(true)} className="bg-pink-600 text-white px-6 py-2.5 rounded-lg hover:bg-pink-700 transition flex items-center gap-2">
                   <Edit size={18} />
                   Edit Profile
                 </button>
-                <button
-                  onClick={() => router.push("/orders")}
-                  className="border border-pink-600 text-pink-600 px-6 py-2.5 rounded-lg hover:bg-pink-50 transition"
-                >
+                <button onClick={() => router.push("/orders")} className="border border-pink-600 text-pink-600 px-6 py-2.5 rounded-lg hover:bg-pink-50 transition">
                   View My Orders
                 </button>
               </div>
             </>
           ) : (
-            <form
-              onSubmit={handleUpdate}
-              className="mt-8 max-w-md mx-auto space-y-5 text-left"
-            >
+            <form onSubmit={handleUpdate} className="mt-8 max-w-md mx-auto space-y-5 text-left">
               <div>
-                <label className="block text-gray-700 font-medium mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
-                />
+                <label className="block text-gray-700 font-medium mb-1">Full Name</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all" />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
-                />
+                <label className="block text-gray-700 font-medium mb-1">Username</label>
+                <input type="text" name="username" value={formData.username} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all" />
               </div>
 
               <div>
-                <label className="block text-gray-700 font-medium mb-1">
-                  Gender
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
-                >
+                <label className="block text-gray-700 font-medium mb-1">Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 focus:ring-2 focus:ring-pink-500 outline-none transition-all">
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -312,19 +236,11 @@ function ProfilePage() {
               </div>
 
               <div className="flex items-center justify-center gap-4 mt-6">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="bg-pink-600 text-white px-6 py-2.5 rounded-lg hover:bg-pink-700 transition flex items-center gap-2 disabled:opacity-60"
-                >
+                <button type="submit" disabled={saving} className="bg-pink-600 text-white px-6 py-2.5 rounded-lg hover:bg-pink-700 transition flex items-center gap-2 disabled:opacity-60">
                   <Save size={18} />
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="border border-gray-400 text-gray-600 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition flex items-center gap-2"
-                >
+                <button type="button" onClick={() => setEditing(false)} className="border border-gray-400 text-gray-600 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition flex items-center gap-2">
                   <X size={18} />
                   Cancel
                 </button>
@@ -333,16 +249,6 @@ function ProfilePage() {
           )}
         </div>
       </div>
-
-      <footer className="mt-12 text-gray-500 text-sm text-center">
-        <p>
-          © {new Date().getFullYear()}{" "}
-          <span className="text-pink-600 font-medium">Messia</span> — Made with
-          ❤️ for Gifting Lovers
-        </p>
-      </footer>
     </div>
   );
 }
-
-export default ProfilePage;
