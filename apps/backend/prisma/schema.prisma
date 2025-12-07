@@ -201,6 +201,14 @@ model Announcement {
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
+model AllowedStudent {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  addedBy   Int?     // Warden ID (Optional if we just want to track it)
+  createdAt DateTime @default(now())
+}
+
 // ENUMS
 enum Role {
   STUDENT

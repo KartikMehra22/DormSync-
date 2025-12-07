@@ -53,6 +53,18 @@ async function createUserMiddleware(req, res, next) {
     }
 
     try {
+        // Enforce Whitelist for STUDENTS
+        if (role === "STUDENT") {
+            const allowed = await prisma.allowedStudent.findUnique({
+                where: { email },
+            });
+            if (!allowed) {
+                return res.status(403).json({
+                    ERROR: "You are not authorized to join. Please contact your Warden to get your email whitelisted.",
+                });
+            }
+        }
+
         const existingUser = await prisma.user.findFirst({
             where: {
                 OR: [{ email }, { username }],

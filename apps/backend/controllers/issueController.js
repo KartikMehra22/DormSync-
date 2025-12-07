@@ -50,8 +50,23 @@ async function getMyIssuesController(req, res) {
         const { status, category } = req.query;
 
         const where = { userId };
-        if (status) where.status = status;
-        if (category) where.category = category;
+
+        // Validate and apply filters
+        if (status) {
+            const validStatuses = ["PENDING", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ ERROR: `Invalid status. Allowed: ${validStatuses.join(", ")}` });
+            }
+            where.status = status;
+        }
+
+        if (category) {
+            const validCategories = ["MAINTENANCE", "ELECTRICAL", "PLUMBING", "CLEANING", "FURNITURE", "INTERNET", "OTHER"];
+            if (!validCategories.includes(category)) {
+                return res.status(400).json({ ERROR: `Invalid category. Allowed: ${validCategories.join(", ")}` });
+            }
+            where.category = category;
+        }
 
         const issues = await prisma.issue.findMany({
             where,
@@ -65,7 +80,7 @@ async function getMyIssuesController(req, res) {
             issues,
         });
     } catch (error) {
-        console.error("GetMyIssues error:", error);
+        console.error("GetMyIssues error:", error.message);
         return res.status(500).json({ ERROR: "Internal Server Error" });
     }
 }
@@ -76,9 +91,30 @@ async function getAllIssuesController(req, res) {
         const { status, category, priority } = req.query;
 
         const where = {};
-        if (status) where.status = status;
-        if (category) where.category = category;
-        if (priority) where.priority = priority;
+
+        if (status) {
+            const validStatuses = ["PENDING", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ ERROR: `Invalid status. Allowed: ${validStatuses.join(", ")}` });
+            }
+            where.status = status;
+        }
+
+        if (category) {
+            const validCategories = ["MAINTENANCE", "ELECTRICAL", "PLUMBING", "CLEANING", "FURNITURE", "INTERNET", "OTHER"];
+            if (!validCategories.includes(category)) {
+                return res.status(400).json({ ERROR: `Invalid category. Allowed: ${validCategories.join(", ")}` });
+            }
+            where.category = category;
+        }
+
+        if (priority) {
+            const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+            if (!validPriorities.includes(priority)) {
+                return res.status(400).json({ ERROR: `Invalid priority. Allowed: ${validPriorities.join(", ")}` });
+            }
+            where.priority = priority;
+        }
 
         const issues = await prisma.issue.findMany({
             where,
@@ -89,8 +125,6 @@ async function getAllIssuesController(req, res) {
                         name: true,
                         username: true,
                         email: true,
-                    },
-                    include: {
                         roomAllocation: {
                             where: { status: "ACTIVE" },
                             include: {
@@ -115,7 +149,7 @@ async function getAllIssuesController(req, res) {
             issues,
         });
     } catch (error) {
-        console.error("GetAllIssues error:", error);
+        console.error("GetAllIssues error:", error.message);
         return res.status(500).json({ ERROR: "Internal Server Error" });
     }
 }

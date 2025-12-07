@@ -9,23 +9,27 @@ const {
 } = require("../middlewares/authMiddleware")
 
 const {
-    createUserController, 
+    createUserController,
     loginUserController,
     logoutUserController,
     getMeController,
     updateUserController,
+    addAllowedStudentController,
 } = require("../controllers/authController")
 
-const { 
-    authenticate 
+const {
+    authenticate
 } = require("../utils/auth")
 
+const { authorizeRoles } = require("../middlewares/roleMiddleware");
 
-authRouter.post("/register",createUserMiddleware,createUserController)
-authRouter.post("/login",loginUserMiddleware,loginUserController)
-authRouter.post('/logout',logoutUserMiddleware,logoutUserController)
-authRouter.get("/me",authenticate,getMeController)
+
+authRouter.post("/register", createUserMiddleware, createUserController)
+authRouter.post("/login", loginUserMiddleware, loginUserController)
+authRouter.post('/logout', logoutUserMiddleware, logoutUserController)
+authRouter.get("/me", authenticate, getMeController)
 authRouter.put("/update", authenticate, updateUserMiddleware, updateUserController);
+authRouter.post("/add-student", authenticate, authorizeRoles("WARDEN", "ADMIN"), addAllowedStudentController);
 
 // Future addition ROUTES :-
 // /refresh
@@ -35,4 +39,3 @@ authRouter.put("/update", authenticate, updateUserMiddleware, updateUserControll
 // /delete
 
 module.exports = authRouter;
-  

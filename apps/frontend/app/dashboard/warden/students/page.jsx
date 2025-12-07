@@ -18,7 +18,9 @@ function StudentsContent() {
     const [students, setStudents] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
-
+    const [showModal, setShowModal] = useState(false);
+    const [newStudent, setNewStudent] = useState({ name: "", email: "" });
+    const [adding, setAdding] = useState(false);
     useEffect(() => {
         loadStudents();
     }, []);
@@ -29,8 +31,6 @@ function StudentsContent() {
             const token = localStorage.getItem("token");
 
             // Fetch allocations (Active Students)
-            // Note: Currently backend might limit user fields. To be perfectly integrated, backend should return email/profile.
-            // Assuming we update backend or use available fields.
             const res = await api.room.getAllAllocations(token);
 
             // Map allocations to student list structure
@@ -54,6 +54,23 @@ function StudentsContent() {
         }
     };
 
+    const handleAddStudent = async (e) => {
+        e.preventDefault();
+        setAdding(true);
+        try {
+            const token = localStorage.getItem("token");
+            await api.auth.addStudent(token, newStudent);
+            toast.success("Student added to whitelist! They can now register.");
+            setShowModal(false);
+            setNewStudent({ name: "", email: "" });
+        } catch (error) {
+            console.error("Error adding student:", error);
+            toast.error(error.response?.data?.ERROR || "Failed to add student");
+        } finally {
+            setAdding(false);
+        }
+    };
+
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,7 +91,7 @@ function StudentsContent() {
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Student Management</h2>
                 <button
-                    onClick={() => toast.success("Feature coming soon")}
+                    onClick={() => setShowModal(true)}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
                 >
                     <Plus size={20} />
@@ -176,6 +193,58 @@ function StudentsContent() {
                     </div>
                 )}
             </div>
+
+            {/* Add Student Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Add Student to Whitelist</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            Enter the student's details. They will use this email to register their account.
+                        </p>
+
+                        <form onSubmit={handleAddStudent} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newStudent.name}
+                                    onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={newStudent.email}
+                                    onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={adding}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                                >
+                                    {adding ? "Adding..." : "Add Student"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

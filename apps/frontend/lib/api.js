@@ -33,6 +33,11 @@ export const authAPI = {
         const res = await axios.put(`${BASE_URL}/api/auth/update`, data, getAuthHeaders(token));
         return res.data;
     },
+
+    addStudent: async (token, data) => {
+        const res = await axios.post(`${BASE_URL}/api/auth/add-student`, data, getAuthHeaders(token));
+        return res.data;
+    },
 };
 
 // ==================== PROFILE ====================

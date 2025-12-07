@@ -197,10 +197,58 @@ async function updateUserController(req, res) {
     }
 }
 
+
+async function addAllowedStudentController(req, res) {
+    try {
+        const { name, email } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).json({ ERROR: "Name and email are required" });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Check if already allowed
+        const existing = await prisma.allowedStudent.findUnique({
+            where: { email: normalizedEmail }
+        });
+
+        if (existing) {
+            return res.status(400).json({ ERROR: "Student email is already in the allowed list" });
+        }
+
+        // Check if already registered
+        const alreadyRegistered = await prisma.user.findUnique({
+            where: { email: normalizedEmail }
+        });
+        if (alreadyRegistered) {
+            return res.status(400).json({ ERROR: "User with this email already exists" });
+        }
+
+        const allowed = await prisma.allowedStudent.create({
+            data: {
+                name: name.trim(),
+                email: normalizedEmail,
+                addedBy: req.user.id
+            }
+        });
+
+        return res.status(201).json({
+            message: "Student added to allowed list successfully",
+            student: allowed
+        });
+
+    } catch (error) {
+        console.error("AddAllowedStudent error:", error);
+        return res.status(500).json({ ERROR: "Internal Server Error" });
+    }
+}
+
 module.exports = {
     createUserController,
     loginUserController,
     logoutUserController,
     getMeController,
     updateUserController,
+    addAllowedStudentController,
 };

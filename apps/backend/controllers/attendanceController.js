@@ -330,8 +330,8 @@ async function getAttendanceReportsController(req, res) {
         if (blockId) {
             filteredAttendance = attendance.filter(
                 (a) =>
-                    a.user.roomAllocation &&
-                    a.user.roomAllocation.room.blockId === parseInt(blockId)
+                    a.user.roomAllocation?.length > 0 &&
+                    a.user.roomAllocation[0].room.blockId === parseInt(blockId)
             );
         }
 

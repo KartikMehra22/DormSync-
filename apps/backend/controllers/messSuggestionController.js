@@ -12,6 +12,11 @@ async function createSuggestionController(req, res) {
             });
         }
 
+        const validMealTypes = ["BREAKFAST", "LUNCH", "DINNER"];
+        if (!validMealTypes.includes(mealType)) {
+            return res.status(400).json({ ERROR: "Invalid meal type. Allowed: BREAKFAST, LUNCH, DINNER" });
+        }
+
         const suggestion = await prisma.messSuggestion.create({
             data: {
                 userId,
@@ -46,8 +51,22 @@ async function getAllSuggestionsController(req, res) {
         const { status, mealType } = req.query;
 
         const where = {};
-        if (status) where.status = status;
-        if (mealType) where.mealType = mealType;
+
+        if (status) {
+            const validStatuses = ["PENDING", "APPROVED", "REJECTED"];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ ERROR: `Invalid status. Allowed: ${validStatuses.join(", ")}` });
+            }
+            where.status = status;
+        }
+
+        if (mealType) {
+            const validMealTypes = ["BREAKFAST", "LUNCH", "DINNER"];
+            if (!validMealTypes.includes(mealType)) {
+                return res.status(400).json({ ERROR: `Invalid meal type. Allowed: ${validMealTypes.join(", ")}` });
+            }
+            where.mealType = mealType;
+        }
 
         const suggestions = await prisma.messSuggestion.findMany({
             where,

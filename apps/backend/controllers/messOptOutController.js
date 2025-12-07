@@ -12,6 +12,13 @@ async function optOutOfMealController(req, res) {
             });
         }
 
+        const validShifts = ["BREAKFAST", "LUNCH", "DINNER"];
+        if (!validShifts.includes(shift)) {
+            return res.status(400).json({
+                ERROR: "Invalid shift. Allowed: BREAKFAST, LUNCH, DINNER",
+            });
+        }
+
         const targetDate = new Date(date);
         targetDate.setHours(0, 0, 0, 0);
 
