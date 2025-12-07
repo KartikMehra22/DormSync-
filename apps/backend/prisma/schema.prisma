@@ -8,18 +8,267 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
-  username  String    @unique
-  email     String    @unique
+  username  String   @unique
+  email     String   @unique
   password  String
-  gender    String    @default("Prefer not to say")
-  role      Role      @default(USER)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  gender    String   @default("Prefer not to say")
+  role      Role     @default(STUDENT)
+  credits   Float    @default(0) // Redeemable credits for mess opt-outs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile          Profile?
+  roomAllocation   RoomAllocation?
+  roomRequests     RoomRequest[]
+  attendances      Attendance[]
+  issues           Issue[]
+  messOptOuts      MessOptOut[]
+  messSuggestions  MessSuggestion[]
+  announcements    Announcement[]
 }
 
+model Profile {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  rollNumber       String?  @unique
+  phoneNumber      String?
+  department       String?
+  year             Int?
+  hostelBlock      String?
+  roomNumber       String?
+  emergencyContact String?
+  bloodGroup       String?
+  photo            String? // URL to profile photo
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Block {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // e.g., "Block A", "Block B"
+  totalFloors Int
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rooms Room[]
+}
+
+model Room {
+  id         Int        @id @default(autoincrement())
+  blockId    Int
+  roomNumber String
+  floor      Int
+  capacity   Int        @default(2) // Max students per room
+  occupied   Int        @default(0) // Current occupancy
+  type       String? // e.g., "Single", "Double", "Triple"
+  status     RoomStatus @default(AVAILABLE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  block       Block            @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  allocations RoomAllocation[]
+  requests    RoomRequest[]
+
+  @@unique([blockId, roomNumber])
+}
+
+model RoomAllocation {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @unique
+  roomId      Int
+  allocatedAt DateTime         @default(now())
+  vacatedAt   DateTime?
+  status      AllocationStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model RoomRequest {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  requestedRoomId Int? // Null if requesting any available room
+  currentRoomId   Int? // For room change requests
+  reason          String
+  status          RequestStatus @default(PENDING)
+  requestedAt     DateTime      @default(now())
+  resolvedAt      DateTime?
+  resolvedBy      Int? // Warden who resolved it
+  remarks         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user          User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedRoom Room? @relation(fields: [requestedRoomId], references: [id])
+}
+
+model Attendance {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  date        DateTime         @default(now())
+  checkInTime DateTime?
+  status      AttendanceStatus @default(ABSENT)
+  markedBy    Int? // Warden who marked attendance
+  remarks     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Issue {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String
+  category    IssueCategory
+  priority    IssuePriority @default(MEDIUM)
+  status      IssueStatus   @default(PENDING)
+  attachments String[] // Array of URLs
+  reportedAt  DateTime      @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  Int? // Staff who resolved it
+  remarks     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MessMenu {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  shift       MealShift
+  items       String[] // Array of food items
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([date, shift])
+}
+
+model MessOptOut {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  date         DateTime // Date of the meal
+  shift        MealShift
+  optedOutAt   DateTime  @default(now())
+  creditEarned Float     @default(0) // Credits earned for this opt-out
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, shift])
+}
+
+model MessSuggestion {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  foodItem    String
+  mealType    MealShift
+  description String?
+  votes       Int      @default(0)
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  category    String?
+  priority    Boolean   @default(false)
+  authorId    Int
+  expiresAt   DateTime?
+  attachment  String? // URL to attachment
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+// ENUMS
 enum Role {
-  USER
+  STUDENT
+  WARDEN
   ADMIN
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+enum AllocationStatus {
+  ACTIVE
+  VACATED
+  TRANSFERRED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  ON_LEAVE
+}
+
+enum IssueCategory {
+  MAINTENANCE
+  ELECTRICAL
+  PLUMBING
+  CLEANING
+  FURNITURE
+  INTERNET
+  OTHER
+}
+
+enum IssuePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum IssueStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum MealShift {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+enum AnnouncementCategory {
+  GENERAL
+  HOSTEL
+  MESS
+  MAINTENANCE
+  EVENT
+  EMERGENCY
 }

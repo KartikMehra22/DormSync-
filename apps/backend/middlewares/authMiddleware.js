@@ -2,15 +2,16 @@ const { prisma } = require("../config/database");
 
 
 async function createUserMiddleware(req, res, next) {
-    let { name, username, email, password, confirm_password } = req.body;
+    let { name, username, email, password, confirm_password, gender, role } = req.body;
 
     if (!name || !password || !confirm_password || !email || !username) {
         return res.status(400).json({ ERROR: "All fields are required" });
     }
- 
+
     name = name.trim();
     email = email.trim().toLowerCase();
     username = username.trim().toLowerCase();
+    if (gender) gender = gender.trim();
 
     if (password !== confirm_password) {
         return res.status(400).json({ ERROR: "Password and Confirm Password do not match" });
@@ -21,19 +22,34 @@ async function createUserMiddleware(req, res, next) {
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return res.status(400).json({ ERROR: "Invalid email format" });
+        return res.status(400).json({
+            ERROR: "Invalid email format",
+        });
     }
 
     if (username.length < 3) {
-        return res.status(400).json({ ERROR: "Username must be at least 3 characters long" });
+        return res.status(400).json({
+            ERROR: "Username must be at least 3 characters long",
+        });
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-        return res.status(400).json({ ERROR: "Username can only contain letters, numbers, and underscores" });
+        return res.status(400).json({
+            ERROR: "Username can only contain letters, numbers, and underscores",
+        });
     }
 
     if (!/^[a-zA-Z\s]+$/.test(name)) {
-        return res.status(400).json({ ERROR: "Name should contain only letters and spaces" });
+        return res.status(400).json({
+            ERROR: "Name should contain only letters and spaces",
+        });
+    }
+
+    // Validate role if provided
+    if (role && !["STUDENT", "WARDEN", "ADMIN"].includes(role)) {
+        return res.status(400).json({
+            ERROR: "Invalid role. Must be STUDENT, WARDEN, or ADMIN",
+        });
     }
 
     try {
@@ -47,9 +63,9 @@ async function createUserMiddleware(req, res, next) {
             return res.status(400).json({ ERROR: "Email or Username already exists" });
         }
 
-        req.body = { name, username, email, password, confirm_password };
+        req.body = { name, username, email, password, confirm_password, gender, role };
         next();
-    } 
+    }
     catch (err) {
         console.error("Error in createUserMiddleware:", err);
         return res.status(500).json({
@@ -134,7 +150,7 @@ async function updateUserMiddleware(req, res, next) {
 }
 
 
-module.exports = { 
+module.exports = {
     createUserMiddleware,
     loginUserMiddleware,
     logoutUserMiddleware,
