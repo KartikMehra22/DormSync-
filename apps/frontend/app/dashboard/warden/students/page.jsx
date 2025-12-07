@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { Search, Plus, Edit2, Trash2, Mail, Phone } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Mail, Phone, BedDouble } from "lucide-react";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -27,62 +27,29 @@ function StudentsContent() {
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
-            // Mock data for now - replace with real API
-            setStudents([
-                {
-                    id: 1,
-                    name: "John Doe",
-                    email: "john.doe@email.com",
-                    phone: "+1 234-567-8900",
-                    room: "101",
-                    course: "Computer Science",
-                    year: "3rd Year",
-                    status: "active",
-                },
-                {
-                    id: 2,
-                    name: "Sarah Wilson",
-                    email: "sarah.wilson@email.com",
-                    phone: "+1 234-567-8901",
-                    room: "105",
-                    course: "Mechanical Engineering",
-                    year: "2nd Year",
-                    status: "active",
-                },
-                {
-                    id: 3,
-                    name: "Michael Brown",
-                    email: "michael.brown@email.com",
-                    phone: "+1 234-567-8902",
-                    room: "210",
-                    course: "Electrical Engineering",
-                    year: "4th Year",
-                    status: "active",
-                },
-                {
-                    id: 4,
-                    name: "Emily Davis",
-                    email: "emily.davis@email.com",
-                    phone: "+1 234-567-8903",
-                    room: "305",
-                    course: "Civil Engineering",
-                    year: "1st Year",
-                    status: "active",
-                },
-                {
-                    id: 5,
-                    name: "David Martinez",
-                    email: "david.martinez@email.com",
-                    phone: "+1 234-567-8904",
-                    room: "402",
-                    course: "Computer Science",
-                    year: "3rd Year",
-                    status: "inactive",
-                },
-            ]);
-            setLoading(false);
+
+            // Fetch allocations (Active Students)
+            // Note: Currently backend might limit user fields. To be perfectly integrated, backend should return email/profile.
+            // Assuming we update backend or use available fields.
+            const res = await api.room.getAllAllocations(token);
+
+            // Map allocations to student list structure
+            const mappedStudents = res.allocations?.map(a => ({
+                id: a.user.id,
+                name: a.user.name,
+                email: a.user.email || "N/A", // Backend might need query update
+                phone: a.user.profile?.phoneNumber || "N/A",
+                room: `${a.room.block?.name} - ${a.room.roomNumber}`,
+                course: a.user.profile?.department || "N/A",
+                year: a.user.profile?.year ? `${a.user.profile.year} Year` : "N/A",
+                status: "active" // Since they have an allocation
+            })) || [];
+
+            setStudents(mappedStudents);
         } catch (error) {
             console.error("Error loading students:", error);
+            toast.error("Failed to load student list");
+        } finally {
             setLoading(false);
         }
     };
@@ -90,7 +57,7 @@ function StudentsContent() {
     const filteredStudents = students.filter(student =>
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.room.includes(searchTerm)
+        student.room.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) {
@@ -106,7 +73,10 @@ function StudentsContent() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Student Management</h2>
-                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                <button
+                    onClick={() => toast.success("Feature coming soon")}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
+                >
                     <Plus size={20} />
                     Add Student
                 </button>
@@ -135,8 +105,7 @@ function StudentsContent() {
                                 <th className="text-left py-3 px-4 text-gray-700 font-medium">Name</th>
                                 <th className="text-left py-3 px-4 text-gray-700 font-medium">Contact</th>
                                 <th className="text-left py-3 px-4 text-gray-700 font-medium">Room</th>
-                                <th className="text-left py-3 px-4 text-gray-700 font-medium">Course</th>
-                                <th className="text-left py-3 px-4 text-gray-700 font-medium">Year</th>
+                                <th className="text-left py-3 px-4 text-gray-700 font-medium">Details</th>
                                 <th className="text-left py-3 px-4 text-gray-700 font-medium">Status</th>
                                 <th className="text-left py-3 px-4 text-gray-700 font-medium">Actions</th>
                             </tr>
@@ -160,22 +129,29 @@ function StudentsContent() {
                                         </div>
                                     </td>
                                     <td className="py-3 px-4">
-                                        <span className="font-medium text-gray-800">{student.room}</span>
+                                        <div className="flex items-center gap-2">
+                                            <BedDouble size={16} className="text-gray-400" />
+                                            <span className="font-medium text-gray-800">{student.room}</span>
+                                        </div>
                                     </td>
-                                    <td className="py-3 px-4 text-gray-700">{student.course}</td>
-                                    <td className="py-3 px-4 text-gray-700">{student.year}</td>
+                                    <td className="py-3 px-4">
+                                        <div className="text-sm">
+                                            <p className="text-gray-800">{student.course}</p>
+                                            <p className="text-gray-500">{student.year}</p>
+                                        </div>
+                                    </td>
                                     <td className="py-3 px-4">
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${student.status === "active"
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-gray-100 text-gray-700"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-gray-100 text-gray-700"
                                             }`}>
-                                            {student.status}
+                                            {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
                                         </span>
                                     </td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => toast.info("Edit feature coming soon")}
+                                                onClick={() => toast.success("Edit feature coming soon")}
                                                 className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition"
                                             >
                                                 <Edit2 size={18} />

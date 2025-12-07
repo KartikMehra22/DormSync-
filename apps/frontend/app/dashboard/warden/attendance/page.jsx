@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
-import { Coffee, Sun, Moon, Search, CheckCircle, UserCheck, XCircle } from "lucide-react";
+import { Moon, Search, CheckCircle, UserCheck, AlertCircle, Clock } from "lucide-react";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -15,59 +15,91 @@ export default function AttendancePage() {
 }
 
 function AttendanceContent() {
-    const [selectedMeal, setSelectedMeal] = useState("BREAKFAST");
     const [searchTerm, setSearchTerm] = useState("");
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState("ALL"); // ALL, PRESENT, PENDING
 
     useEffect(() => {
-        loadStudents();
+        loadData();
     }, []);
 
-    const loadStudents = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
-            // Mock data
-            setStudents([
-                { id: 1, name: "John Doe", room: "101", optedIn: true, credits: 5, present: false },
-                { id: 2, name: "Sarah Wilson", room: "105", optedIn: true, credits: 3, present: false },
-                { id: 3, name: "Michael Brown", room: "210", optedIn: true, credits: 8, present: false },
-                { id: 4, name: "Emily Davis", room: "305", optedIn: false, credits: 2, present: false },
-                { id: 5, name: "David Martinez", room: "402", optedIn: false, credits: 1, present: false },
-                { id: 6, name: "Lisa Chen", room: "103", optedIn: true, credits: 4, present: false },
-                { id: 7, name: "James Taylor", room: "207", optedIn: true, credits: 6, present: false },
-                { id: 8, name: "Anna White", room: "309", optedIn: false, credits: 0, present: false },
+            const token = localStorage.getItem("token");
+            const today = new Date().toISOString().split("T")[0];
+
+            // Fetch allocations (all active students) and today's attendance (present students)
+            const [allocationsRes, attendanceRes] = await Promise.all([
+                api.room.getAllAllocations(token),
+                api.attendance.getAllAttendance(token, { date: today })
             ]);
-            setLoading(false);
+
+            const attendedUserIds = new Set(attendanceRes.attendance?.map(a => a.userId));
+            const attendanceMap = new Map(attendanceRes.attendance?.map(a => [a.userId, a]));
+
+            const mappedStudents = allocationsRes.allocations?.map(a => {
+                const isPresent = attendedUserIds.has(a.userId);
+                const attendanceRecord = attendanceMap.get(a.userId);
+
+                return {
+                    id: a.user.id,
+                    name: a.user.name,
+                    room: `${a.room.block?.name || ''} ${a.room.roomNumber}`,
+                    status: isPresent ? "PRESENT" : "PENDING",
+                    checkInTime: attendanceRecord?.checkInTime
+                        ? new Date(attendanceRecord.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : null
+                };
+            }) || [];
+
+            setStudents(mappedStudents);
         } catch (error) {
-            console.error("Error loading students:", error);
+            console.error("Error loading attendance data:", error);
+            toast.error("Failed to load attendance data");
+        } finally {
             setLoading(false);
         }
     };
 
-    const handleMarkPresent = (studentId) => {
-        setStudents(prev => prev.map(s =>
-            s.id === studentId ? { ...s, present: true } : s
-        ));
-        toast.success("Marked as present");
+    const handleMarkPresent = async (studentId, studentName) => {
+        try {
+            const token = localStorage.getItem("token");
+            const today = new Date().toISOString().split("T")[0];
+
+            await api.attendance.markAttendance(token, {
+                userId: studentId,
+                date: today,
+                status: "PRESENT",
+                remarks: "Marked manually by warden" // You could add a prompt for remarks if needed
+            });
+
+            // Optimistic update
+            setStudents(prev => prev.map(s =>
+                s.id === studentId
+                    ? { ...s, status: "PRESENT", checkInTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+                    : s
+            ));
+
+            toast.success(`Marked ${studentName} as present`);
+        } catch (error) {
+            console.error("Error marking attendance:", error);
+            toast.error("Failed to mark attendance");
+        }
     };
 
-    const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.room.includes(searchTerm)
-    );
+    const filteredStudents = students.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.room.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesFilter = filter === "ALL" || s.status === filter;
+        return matchesSearch && matchesFilter;
+    });
 
     const stats = {
-        optedIn: students.filter(s => s.optedIn).length,
-        markedPresent: students.filter(s => s.present).length,
-        optedOut: students.filter(s => !s.optedIn).length,
         total: students.length,
-    };
-
-    const getMealIcon = (meal) => {
-        if (meal === "BREAKFAST") return <Coffee size={20} />;
-        if (meal === "LUNCH") return <Sun size={20} />;
-        return <Moon size={20} />;
+        present: students.filter(s => s.status === "PRESENT").length,
+        pending: students.filter(s => s.status === "PENDING").length,
     };
 
     if (loading) {
@@ -82,117 +114,121 @@ function AttendanceContent() {
         <div>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Mark Attendance</h2>
-                <div className="flex items-center gap-2 text-gray-600">
-                    <UserCheck size={20} />
-                    <span className="font-medium">{stats.markedPresent} / {stats.total} marked</span>
-                </div>
-            </div>
-
-            {/* Meal Selection */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">Select Meal</p>
-                <div className="grid grid-cols-3 gap-4">
-                    {["BREAKFAST", "LUNCH", "DINNER"].map((meal) => (
-                        <button
-                            key={meal}
-                            onClick={() => setSelectedMeal(meal)}
-                            className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 font-medium transition ${selectedMeal === meal
-                                    ? meal === "BREAKFAST" ? "border-orange-500 bg-orange-50 text-orange-700" :
-                                        meal === "LUNCH" ? "border-yellow-500 bg-yellow-50 text-yellow-700" :
-                                            "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                    : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                                }`}
-                        >
-                            {getMealIcon(meal)}
-                            <span>{meal.charAt(0) + meal.slice(1).toLowerCase()}</span>
-                        </button>
-                    ))}
+                <h2 className="text-2xl font-bold text-gray-800">Night Attendance</h2>
+                <div className="flex items-center gap-2 text-gray-600 bg-white px-4 py-2 rounded-lg border border-gray-200">
+                    <Clock size={18} />
+                    <span className="font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                 </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                         <UserCheck className="text-blue-600" size={20} />
-                        <p className="text-sm text-blue-700">Opted In</p>
+                        <p className="text-sm text-blue-700">Total Students</p>
                     </div>
-                    <p className="text-2xl font-bold text-blue-600">{stats.optedIn} students</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
                 </div>
 
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                         <CheckCircle className="text-green-600" size={20} />
-                        <p className="text-sm text-green-700">Marked Present</p>
+                        <p className="text-sm text-green-700">Present Tonight</p>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{stats.markedPresent} students</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.present}</p>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                        <XCircle className="text-red-600" size={20} />
-                        <p className="text-sm text-red-700">Opted Out</p>
+                        <AlertCircle className="text-yellow-600" size={20} />
+                        <p className="text-sm text-yellow-700">Pending</p>
                     </div>
-                    <p className="text-2xl font-bold text-red-600">{stats.optedOut} students</p>
+                    <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="relative">
+            {/* Filters & Search */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
-                        placeholder="Search by name or room number..."
+                        placeholder="Search by name or room..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     />
+                </div>
+
+                <div className="flex gap-2">
+                    {["ALL", "PRESENT", "PENDING"].map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                        >
+                            {f.charAt(0) + f.slice(1).toLowerCase()}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             {/* Student List */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 flex items-center gap-2">
-                    {getMealIcon(selectedMeal)}
-                    <h3 className="font-bold text-gray-800">{selectedMeal.charAt(0) + selectedMeal.slice(1).toLowerCase()} Attendance</h3>
+                    <Moon className="text-indigo-600" size={20} />
+                    <h3 className="font-bold text-gray-800">Attendance List</h3>
                 </div>
 
                 <div className="divide-y divide-gray-200">
-                    {filteredStudents.map((student) => (
-                        <div key={student.id} className="p-4 hover:bg-gray-50 transition">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-gray-800 mb-1">{student.name}</p>
-                                    <p className="text-sm text-gray-600">Room {student.room}</p>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${student.optedIn
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-red-100 text-red-700"
+                    {filteredStudents.length > 0 ? (
+                        filteredStudents.map((student) => (
+                            <div key={student.id} className="p-4 hover:bg-gray-50 transition">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${student.status === "PRESENT" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
                                             }`}>
-                                            {student.optedIn ? "Opted In" : "Opted Out"}
-                                        </span>
-                                        <span className="text-xs text-gray-600">Credits: {student.credits}</span>
+                                            {student.status === "PRESENT" ? <CheckCircle size={20} /> : <Clock size={20} />}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-800">{student.name}</p>
+                                            <p className="text-sm text-gray-600">Room {student.room}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        {student.status === "PRESENT" && (
+                                            <span className="text-sm text-gray-500 mr-2">
+                                                In at {student.checkInTime}
+                                            </span>
+                                        )}
+
+                                        {student.status === "PENDING" ? (
+                                            <button
+                                                onClick={() => handleMarkPresent(student.id, student.name)}
+                                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition text-sm"
+                                            >
+                                                Mark Present
+                                            </button>
+                                        ) : (
+                                            <div className="px-4 py-2 bg-green-50 text-green-700 rounded-lg font-medium text-sm border border-green-200 flex items-center gap-2">
+                                                <CheckCircle size={16} />
+                                                Present
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-
-                                {student.optedIn && (
-                                    <button
-                                        onClick={() => handleMarkPresent(student.id)}
-                                        disabled={student.present}
-                                        className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition ${student.present
-                                                ? "bg-green-600 text-white cursor-not-allowed"
-                                                : "bg-green-600 hover:bg-green-700 text-white"
-                                            }`}
-                                    >
-                                        <CheckCircle size={18} />
-                                        {student.present ? "Present" : "Present"}
-                                    </button>
-                                )}
                             </div>
+                        ))
+                    ) : (
+                        <div className="p-8 text-center text-gray-500">
+                            No students found matching your filters.
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
         </div>
