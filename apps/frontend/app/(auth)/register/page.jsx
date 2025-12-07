@@ -13,6 +13,7 @@ export default function RegisterPage() {
         email: "",
         username: "",
         password: "",
+        confirm_password: "",
         role: "STUDENT",
     });
     const [loading, setLoading] = useState(false);
@@ -100,6 +101,21 @@ export default function RegisterPage() {
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     placeholder="Create a password"
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <input
+                                    type="password"
+                                    required
+                                    value={formData.confirm_password}
+                                    onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                                    placeholder="Confirm your password"
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
                                 />
                             </div>
