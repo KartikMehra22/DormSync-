@@ -155,7 +155,7 @@ async function getAllAttendanceController(req, res) {
 // Manually mark attendance (WARDEN)
 async function manualAttendanceController(req, res) {
     try {
-        const { userId, userName, date, status, remarks } = req.body;
+        const { userId, userName, date, status, checkInTime, checkOutTime, remarks } = req.body;
 
         if ((!userId && !userName) || !date || !status) {
             return res.status(400).json({
@@ -198,24 +198,28 @@ async function manualAttendanceController(req, res) {
             },
         });
 
+        // Determine data payload
+        const dataPayload = {
+            status,
+            remarks: remarks || null,
+        };
+
+        if (checkInTime !== undefined) dataPayload.checkInTime = checkInTime ? new Date(checkInTime) : null;
+        if (checkOutTime !== undefined) dataPayload.checkOutTime = checkOutTime ? new Date(checkOutTime) : null;
+
+        // Default behavior: if marking PRESENT and no checkInTime provided, use now (only for new records)
+        if (!existing && status === "PRESENT" && checkInTime === undefined) {
+            dataPayload.checkInTime = new Date();
+        }
+
         let attendance;
         if (existing) {
             // Update existing
             attendance = await prisma.attendance.update({
                 where: { id: existing.id },
-                data: {
-                    status,
-                    remarks: remarks || null,
-                },
+                data: dataPayload,
                 include: {
-                    user: {
-                        select: {
-                            id: true,
-                            name: true,
-                            username: true,
-                            email: true,
-                        },
-                    },
+                    user: { select: { id: true, name: true, username: true, email: true } },
                 },
             });
         } else {
@@ -224,19 +228,10 @@ async function manualAttendanceController(req, res) {
                 data: {
                     userId: parseInt(studentId),
                     date: targetDate,
-                    status,
-                    remarks: remarks || null,
-                    checkInTime: status === "PRESENT" ? new Date() : null,
+                    ...dataPayload,
                 },
                 include: {
-                    user: {
-                        select: {
-                            id: true,
-                            name: true,
-                            username: true,
-                            email: true,
-                        },
-                    },
+                    user: { select: { id: true, name: true, username: true, email: true } },
                 },
             });
         }
@@ -256,11 +251,13 @@ async function updateAttendanceController(req, res) {
     try {
         const { id } = req.params;
         const wardenId = req.user.id;
-        const { status, remarks } = req.body;
+        const { status, remarks, checkInTime, checkOutTime } = req.body;
 
         const updateData = { markedBy: wardenId };
         if (status) updateData.status = status;
         if (remarks !== undefined) updateData.remarks = remarks;
+        if (checkInTime !== undefined) updateData.checkInTime = checkInTime ? new Date(checkInTime) : null;
+        if (checkOutTime !== undefined) updateData.checkOutTime = checkOutTime ? new Date(checkOutTime) : null;
 
         const attendance = await prisma.attendance.update({
             where: { id: parseInt(id) },

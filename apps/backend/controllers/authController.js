@@ -198,6 +198,70 @@ async function updateUserController(req, res) {
 }
 
 
+async function getAllStudentsController(req, res) {
+    try {
+        let { page = 1, limit = 10, search, sortBy = "name", order = "asc" } = req.query;
+
+        page = parseInt(page);
+        limit = parseInt(limit);
+        const skip = (page - 1) * limit;
+
+        const where = { role: "STUDENT" };
+
+        if (search) {
+            const searchLower = search.trim().toLowerCase();
+            where.OR = [
+                { name: { contains: searchLower, mode: "insensitive" } },
+                { username: { contains: searchLower, mode: "insensitive" } },
+                { email: { contains: searchLower, mode: "insensitive" } }
+            ];
+        }
+
+        // Validate sortBy field to prevent errors
+        const allowedSortFields = ["name", "username", "email", "createdAt", "updatedAt"];
+        if (!allowedSortFields.includes(sortBy)) sortBy = "name";
+
+        const students = await prisma.user.findMany({
+            where,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                profile: true,
+                roomAllocation: {
+                    where: { status: "ACTIVE" },
+                    include: {
+                        room: {
+                            include: { block: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { [sortBy]: order === "desc" ? "desc" : "asc" },
+            skip,
+            take: limit,
+        });
+
+        const total = await prisma.user.count({ where });
+
+        return res.status(200).json({
+            message: "Students fetched successfully",
+            students,
+            pagination: {
+                total,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+                limit
+            }
+        });
+    } catch (error) {
+        console.error("GetAllStudents error:", error);
+        return res.status(500).json({ ERROR: "Internal Server Error" });
+    }
+}
+
+
 async function addAllowedStudentController(req, res) {
     try {
         const { name, email } = req.body;
@@ -251,4 +315,5 @@ module.exports = {
     getMeController,
     updateUserController,
     addAllowedStudentController,
+    getAllStudentsController,
 };

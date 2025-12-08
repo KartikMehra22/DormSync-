@@ -15,6 +15,7 @@ const {
     getMeController,
     updateUserController,
     addAllowedStudentController,
+    getAllStudentsController,
 } = require("../controllers/authController")
 
 const {
@@ -30,6 +31,7 @@ authRouter.post('/logout', logoutUserMiddleware, logoutUserController)
 authRouter.get("/me", authenticate, getMeController)
 authRouter.put("/update", authenticate, updateUserMiddleware, updateUserController);
 authRouter.post("/add-student", authenticate, authorizeRoles("WARDEN", "ADMIN"), addAllowedStudentController);
+authRouter.get("/students", authenticate, authorizeRoles("WARDEN", "ADMIN"), getAllStudentsController);
 
 // Future addition ROUTES :-
 // /refresh

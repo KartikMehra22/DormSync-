@@ -88,33 +88,43 @@ async function getMyIssuesController(req, res) {
 // Get all issues (WARDEN)
 async function getAllIssuesController(req, res) {
     try {
-        const { status, category, priority } = req.query;
+        let { page = 1, limit = 10, search, status, category, priority, sortBy = "reportedAt", order = "desc" } = req.query;
+
+        page = parseInt(page);
+        limit = parseInt(limit);
+        const skip = (page - 1) * limit;
 
         const where = {};
 
+        // Filters
         if (status) {
             const validStatuses = ["PENDING", "IN_PROGRESS", "RESOLVED", "CLOSED"];
-            if (!validStatuses.includes(status)) {
-                return res.status(400).json({ ERROR: `Invalid status. Allowed: ${validStatuses.join(", ")}` });
-            }
-            where.status = status;
+            if (validStatuses.includes(status)) where.status = status;
         }
 
         if (category) {
             const validCategories = ["MAINTENANCE", "ELECTRICAL", "PLUMBING", "CLEANING", "FURNITURE", "INTERNET", "OTHER"];
-            if (!validCategories.includes(category)) {
-                return res.status(400).json({ ERROR: `Invalid category. Allowed: ${validCategories.join(", ")}` });
-            }
-            where.category = category;
+            if (validCategories.includes(category)) where.category = category;
         }
 
         if (priority) {
             const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"];
-            if (!validPriorities.includes(priority)) {
-                return res.status(400).json({ ERROR: `Invalid priority. Allowed: ${validPriorities.join(", ")}` });
-            }
-            where.priority = priority;
+            if (validPriorities.includes(priority)) where.priority = priority;
         }
+
+        // Search
+        if (search) {
+            const searchLower = search.trim().toLowerCase();
+            where.OR = [
+                { title: { contains: searchLower, mode: "insensitive" } },
+                { description: { contains: searchLower, mode: "insensitive" } },
+                { user: { name: { contains: searchLower, mode: "insensitive" } } } // Allow searching by student name too
+            ];
+        }
+
+        // Sort
+        const allowedSortFields = ["reportedAt", "priority", "status", "category"];
+        if (!allowedSortFields.includes(sortBy)) sortBy = "reportedAt";
 
         const issues = await prisma.issue.findMany({
             where,
@@ -127,26 +137,27 @@ async function getAllIssuesController(req, res) {
                         email: true,
                         roomAllocation: {
                             where: { status: "ACTIVE" },
-                            include: {
-                                room: {
-                                    include: {
-                                        block: true,
-                                    },
-                                },
-                            },
+                            include: { room: { include: { block: true } } },
                         },
                     },
                 },
             },
-            orderBy: [
-                { priority: "desc" },
-                { reportedAt: "desc" },
-            ],
+            orderBy: { [sortBy]: order === "desc" ? "desc" : "asc" },
+            skip,
+            take: limit,
         });
+
+        const total = await prisma.issue.count({ where });
 
         return res.status(200).json({
             message: "Issues fetched successfully",
             issues,
+            pagination: {
+                total,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+                limit
+            }
         });
     } catch (error) {
         console.error("GetAllIssues error:", error.message);

@@ -17,7 +17,7 @@ export default function WardenLayout({ children }) {
         { name: "Students", icon: Users, path: "/dashboard/warden/students" },
         { name: "Rooms", icon: Building2, path: "/dashboard/warden/rooms" },
         { name: "Complaints", icon: MessageSquare, path: "/dashboard/warden/issues" },
-        { name: "Mess Menu", icon: ChefHat, path: "/dashboard/warden/announcements" },
+        { name: "Mess Menu", icon: ChefHat, path: "/dashboard/warden/mess" },
     ];
 
     const handleLogout = () => {

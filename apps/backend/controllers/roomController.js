@@ -199,10 +199,78 @@ async function deleteRoomController(req, res) {
     }
 }
 
+// Bulk create rooms (WARDEN)
+async function createBulkRoomsController(req, res) {
+    try {
+        const { blockId, floor, count, capacity } = req.body;
+
+        if (!blockId || floor === undefined || !count) {
+            return res.status(400).json({
+                ERROR: "Block ID, floor, and count are required",
+            });
+        }
+
+        const block = await prisma.block.findUnique({
+            where: { id: parseInt(blockId) },
+        });
+
+        if (!block) {
+            return res.status(404).json({ ERROR: "Block not found" });
+        }
+
+        const createdRooms = [];
+        const skippedRooms = [];
+
+        // Generate rooms sequentially: 101, 102, ... for floor 1
+        // 201, 202, ... for floor 2
+        for (let i = 1; i <= parseInt(count); i++) {
+            const roomNumVal = (parseInt(floor) * 100) + i;
+            const roomNumber = roomNumVal.toString();
+
+            // Check if exists
+            const existing = await prisma.room.findFirst({
+                where: {
+                    blockId: parseInt(blockId),
+                    roomNumber: roomNumber,
+                },
+            });
+
+            if (existing) {
+                skippedRooms.push(roomNumber);
+                continue;
+            }
+
+            const room = await prisma.room.create({
+                data: {
+                    blockId: parseInt(blockId),
+                    roomNumber: roomNumber,
+                    floor: parseInt(floor),
+                    capacity: capacity ? parseInt(capacity) : 2,
+                    occupied: 0,
+                    status: "AVAILABLE",
+                },
+            });
+            createdRooms.push(room);
+        }
+
+        return res.status(201).json({
+            message: `Created ${createdRooms.length} rooms. Skipped ${skippedRooms.length} existing rooms.`,
+            createdRooms,
+            skippedRooms,
+        });
+
+    } catch (error) {
+        console.error("CreateBulkRooms error:", error);
+        return res.status(500).json({ ERROR: "Internal Server Error" });
+    }
+}
+
 module.exports = {
     getAllRoomsController,
     getRoomController,
     createRoomController,
     updateRoomController,
     deleteRoomController,
+    createBulkRoomsController,
 };
+

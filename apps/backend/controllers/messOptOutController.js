@@ -41,6 +41,7 @@ async function optOutOfMealController(req, res) {
 
         // Prevent opt-out for past meals
         const now = new Date();
+        now.setHours(0, 0, 0, 0); // Normalize to midnight
         if (targetDate < now) {
             return res.status(400).json({
                 ERROR: "Cannot opt out of past meals",
@@ -102,6 +103,7 @@ async function cancelOptOutController(req, res) {
 
         // Prevent cancellation for past meals
         const now = new Date();
+        now.setHours(0, 0, 0, 0);
         if (optOut.date < now) {
             return res.status(400).json({
                 ERROR: "Cannot cancel opt-out for past meals",

@@ -16,6 +16,7 @@ const {
     createRoomController,
     updateRoomController,
     deleteRoomController,
+    createBulkRoomsController,
 } = require("../controllers/roomController");
 
 const {
@@ -38,6 +39,9 @@ roomRouter.get("/blocks", getAllBlocksController);
 roomRouter.post("/blocks", authenticate, authorizeRoles("WARDEN", "ADMIN"), createBlockController);
 roomRouter.put("/blocks/:id", authenticate, authorizeRoles("WARDEN", "ADMIN"), updateBlockController);
 roomRouter.delete("/blocks/:id", authenticate, authorizeRoles("ADMIN"), deleteBlockController);
+
+// Bulk Room Creation
+roomRouter.post("/blocks/bulk-rooms", authenticate, authorizeRoles("WARDEN", "ADMIN"), createBulkRoomsController);
 
 // Room routes
 roomRouter.get("/rooms", getAllRoomsController);

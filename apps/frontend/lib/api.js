@@ -38,6 +38,14 @@ export const authAPI = {
         const res = await axios.post(`${BASE_URL}/api/auth/add-student`, data, getAuthHeaders(token));
         return res.data;
     },
+
+    getAllStudents: async (token, params = {}) => {
+        const res = await axios.get(`${BASE_URL}/api/auth/students`, {
+            ...getAuthHeaders(token),
+            params,
+        });
+        return res.data;
+    },
 };
 
 // ==================== PROFILE ====================
@@ -79,6 +87,11 @@ export const roomAPI = {
 
     createRoom: async (token, data) => {
         const res = await axios.post(`${BASE_URL}/api/rooms/rooms`, data, getAuthHeaders(token));
+        return res.data;
+    },
+
+    createBulkRooms: async (token, data) => {
+        const res = await axios.post(`${BASE_URL}/api/rooms/blocks/bulk-rooms`, data, getAuthHeaders(token));
         return res.data;
     },
 
@@ -165,6 +178,11 @@ export const attendanceAPI = {
         return res.data;
     },
 
+    update: async (token, id, data) => {
+        const res = await axios.put(`${BASE_URL}/api/attendance/${id}`, data, getAuthHeaders(token));
+        return res.data;
+    },
+
     getReports: async (token, params = {}) => {
         const res = await axios.get(`${BASE_URL}/api/attendance/reports`, {
             ...getAuthHeaders(token),
@@ -214,6 +232,29 @@ export const messAPI = {
 
     getCredits: async (token) => {
         const res = await axios.get(`${BASE_URL}/api/mess/credits`, getAuthHeaders(token));
+        return res.data;
+    },
+
+    requestRedemption: async (token, data) => {
+        const res = await axios.post(`${BASE_URL}/api/mess/redemption/request`, data, getAuthHeaders(token));
+        return res.data;
+    },
+
+    getMyRedemptions: async (token) => {
+        const res = await axios.get(`${BASE_URL}/api/mess/redemption/my-requests`, getAuthHeaders(token));
+        return res.data;
+    },
+
+    getAllRedemptions: async (token, params = {}) => {
+        const res = await axios.get(`${BASE_URL}/api/mess/redemption/all`, {
+            ...getAuthHeaders(token),
+            params,
+        });
+        return res.data;
+    },
+
+    processRedemption: async (token, id, data) => {
+        const res = await axios.put(`${BASE_URL}/api/mess/redemption/${id}`, data, getAuthHeaders(token));
         return res.data;
     },
 };

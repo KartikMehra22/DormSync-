@@ -28,6 +28,7 @@ model User {
   messOptOuts      MessOptOut[]
   messSuggestions  MessSuggestion[]
   announcements    Announcement[]
+  redemptions      RedemptionRequest[]
 }
 
 model Profile {
@@ -115,6 +116,7 @@ model Attendance {
   userId      Int
   date        DateTime         @default(now())
   checkInTime DateTime?
+  checkOutTime DateTime?
   status      AttendanceStatus @default(ABSENT)
   markedBy    Int? // Warden who marked attendance
   remarks     String?
@@ -279,4 +281,22 @@ enum AnnouncementCategory {
   MAINTENANCE
   EVENT
   EMERGENCY
+}
+model RedemptionRequest {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  amount      Float
+  status      RedemptionStatus @default(PENDING)
+  processedBy Int? // Warden ID
+  remarks     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
